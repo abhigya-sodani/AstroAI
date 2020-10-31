@@ -55,18 +55,7 @@ model1 = ResNet50(weights='imagenet',
                         pooling='max')
 
 model2 = tf.keras.models.load_model('best_worldview_10_classes_full_aug.h5')
-"""
-def extract_features(url, model):
-    response = requests.get(url)
-    img = Image.open(BytesIO(response.content))
-    a=np.asarray(img)
-    a=np.resize(a,(1,512,512,3))
-    preprocessed_img = preprocess_input(a)
-    features = model.predict(preprocessed_img)
-    flattened_features = features.flatten()
-    normalized_features = flattened_features / norm(flattened_features)
-    return normalized_features
-"""
+
 def eF(url, model):
     response = wget.download(url)
     input_shape = (224, 224, 3)
