@@ -28,9 +28,12 @@ from tensorflow.keras.applications.vgg19 import VGG19
 from tensorflow.keras.applications.mobilenet import MobileNet
 from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.models import Model
+from tensorflow.keras.preprocessing import image
 from tensorflow.keras.layers import Input, Flatten, Dense, Dropout, GlobalAveragePooling2D
 import wget
 import cv2
+import pickle
+from sklearn.neighbors import NearestNeighbors
 
 def extract_model_till_layer(model, layerNo):
   outputs = model.layers[layerNo].output
@@ -51,8 +54,8 @@ model1 = ResNet50(weights='imagenet',
                          input_shape=(512, 512, 3),
                         pooling='max')
 
-model2 = tf.keras.models.load_model('best_worldview_2.h5')
-
+model2 = tf.keras.models.load_model('best_worldview_10_classes_full_aug.h5')
+"""
 def extract_features(url, model):
     response = requests.get(url)
     img = Image.open(BytesIO(response.content))
@@ -63,13 +66,18 @@ def extract_features(url, model):
     flattened_features = features.flatten()
     normalized_features = flattened_features / norm(flattened_features)
     return normalized_features
-
+"""
 def eF(url, model):
     response = wget.download(url)
-    a = cv2.imread(response)
+    input_shape = (224, 224, 3)
+    img = image.load_img(response,
+                         target_size=(input_shape[0], input_shape[1]))
+    img_array = image.img_to_array(img)
+    a = np.expand_dims(img_array, axis=0)
+    #a = cv2.imread(response,cv2.IMREAD_COLOR)
     os.remove(response)
-    a=np.resize(a,(1,224,224,3))
-    a=a/255
+    #a=np.resize(a,(1,224,224,3))
+    a=a/255.0
     features=model.predict(a)
     flattened_features=features.flatten()
     normalized_features=flattened_features / norm(flattened_features)
@@ -80,27 +88,49 @@ app = Flask(__name__)
 CORS(app)
 
 def findNearestSmall(url, count):
+    """
     u=AnnoyIndex(128)
-    u.load('fullDatabase.ann')
-    indexes = u.get_nns_by_vector(extract_features(url,extract_model_till_layer(model2,10)),
+    u.load('fullDatabaseSmallNew.ann')
+    indexes = u.get_nns_by_vector(eF(url,extract_model_till_layer(model2,10)),
                              count,
                               include_distances=True)
-
+    """
+    feature_list = pickle.load(open('features-worldview-custom-model-level-8.pickle','rb'))
+    filename_list = pickle.load(open('filenames-worldview-level-8.pickle','rb'))
+    neighbors = NearestNeighbors(n_neighbors=count,
+                             algorithm='brute',
+                             metric='euclidean').fit(feature_list)
+    temp=eF(url,extract_model_till_layer(model2,10))
+    distances, indices = neighbors.kneighbors([temp])
+    
     j=""
-    for a in indexes[0]:
+    for a in indices[0]:
+        a=filename_list[a].split("/")[4]
+        a=int((a.split("."))[0])
         p=a//320
         o=a%320
-        j+=("https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2012-07-09/250m/8/"+str(p)+"/"+str(o)+".jpg###")
+        j+=("https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2005-08-29/250m/8/"+str(p)+"/"+str(o)+".jpg###")
     return j
 
 def findNearestBig(url, count):
+    """
     u1=AnnoyIndex(128)
     u1.load('hurricanes1.ann')
     indexes = u1.get_nns_by_vector(eF(url,extract_model_till_layer(model2,10)),
                              count,
                               include_distances=True)
+    """
+    feature_list = pickle.load(open('features-worldview-custom-model-level-4.pickle','rb'))
+    filename_list = pickle.load(open('filenames-worldview-level-4.pickle','rb'))
+    neighbors = NearestNeighbors(n_neighbors=count,
+                             algorithm='brute',
+                             metric='euclidean').fit(feature_list)
+    temp=eF(url,extract_model_till_layer(model2,10))
+    distances, indices = neighbors.kneighbors([temp])
+    
     j=""
-    for a in indexes[0]:
+    for a in indices[0]:
+        a=int(filename_list[a].split(".")[0])
         p=a//20
         o=a%20
         j+=("https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2005-08-29/250m/4/"+str(p)+"/"+str(o)+".jpg###")
@@ -115,15 +145,15 @@ def hello():
 @app.route("/resnet/")
 def thing():
     a=request.args.get('url')+"?REQUEST="+request.args.get('REQUEST')+"&TIME="+request.args.get('TIME')+"&BBOX="+request.args.get('BBOX')+"&CRS="+request.args.get('CRS')+"&LAYERS="+request.args.get("LAYERS")+"&WRAP="+request.args.get("WRAP")+"&FORMAT="+request.args.get('FORMAT')+"&WIDTH="+request.args.get('WIDTH')+"&HEIGHT="+request.args.get('HEIGHT')+"&ts="+request.args.get('ts')
-
+    
     bbox=request.args.get('BBOX')
     arr=bbox.split(",")
     arr=[float(a) for a in arr]
     size=abs(arr[0]-arr[2])*abs(arr[1]-arr[3])
     j=""
-    if(size>250):
+    if(size>50):
         j=findNearestBig(a,int(request.args.get('count')))
-    if(size<=250):
+    if(size<=50):
         j=findNearestSmall(a,int(request.args.get('count')))
         
     
@@ -132,8 +162,16 @@ def thing():
     
 @app.route("/multi/")
 def other():
+    """
     uA=AnnoyIndex(128)
-    uA.load('fullDatabase.ann')
+    uA.load('fullDatabaseSmallNew.ann')
+    """
+    feature_list = pickle.load(open('features-worldview-custom-model-level-8.pickle','rb'))
+    filename_list = pickle.load(open('filenames-worldview-level-8.pickle','rb'))
+    neighbors = NearestNeighbors(n_neighbors=30,
+                             algorithm='brute',
+                             metric='euclidean').fit(feature_list)
+    
 
     a=request.args.get('url')
     urlL=a.split("|||")
@@ -146,24 +184,29 @@ def other():
     for u in urlLL:
         a=int(u[0])
         b=int(u[1])
-        feats.append(uA.get_item_vector((a)*320+b))
+        feats.append(feature_list[filename_list.index("/dataset/level8images/level8images/"+str((a)*320+b)+".jpg")])
 
     final=feats[0]
+    d={}
+    for u in range(0,len(feats)):
+      distances, indices=neighbors.kneighbors([feats[u]])
+      
+      for t in range(0,len(distances[0])):
+        d.update({distances[0][t]:indices[0][t]})
+    sorted_list=sorted(d)
 
-    for y in range(1,len(feats)):
-        list( map(add, final, feats[y]) )
-
-    final=[x / len(feats) for x in final]
-
-    indexes = uA.get_nns_by_vector(final,
-                              int(request.args.get('count')),
-                              include_distances=True)
+    indices=[]
+    for y in range(0,30):
+        indices.append(d[sorted_list[y]])
+    
     
     j=""
-    for a in indexes[0]:
+    for a in indices:
+        a=filename_list[a].split("/")[4]
+        a=int((a.split("."))[0])
         p=a//320
         o=a%320
-        j+=("https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2012-07-09/250m/8/"+str(p)+"/"+str(o)+".jpg###")
+        j+=("https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2005-08-29/250m/8/"+str(p)+"/"+str(o)+".jpg###")
 
     return j
 
@@ -171,9 +214,11 @@ def other():
 
 @app.route("/multiBig/")
 def otherOne():
-    uA=AnnoyIndex(128)
-    uA.load('hurricanes1.ann')
-
+    feature_list = pickle.load(open('features-worldview-custom-model-level-4.pickle','rb'))
+    filename_list = pickle.load(open('filenames-worldview-level-4.pickle','rb'))
+    neighbors = NearestNeighbors(n_neighbors=30,
+                             algorithm='brute',
+                             metric='euclidean').fit(feature_list)
     a=request.args.get('url')
     urlL=a.split("|||")
     urlLL=[]
@@ -185,21 +230,24 @@ def otherOne():
     for u in urlLL:
         a=int(u[0])
         b=int(u[1])
-        feats.append(uA.get_item_vector((a)*20+b))
+        feats.append(feature_list[filename_list.index(str((a)*20+b)+".jpg")])
 
     final=feats[0]
 
-    for y in range(1,len(feats)):
-        list( map(add, final, feats[y]) )
+    d={}
+    for u in range(0,len(feats)):
+      distances, indices=neighbors.kneighbors([feats[u]])
+      
+      for t in range(0,len(distances[0])):
+        d.update({distances[0][t]:indices[0][t]})
+    sorted_list=sorted(d)
 
-    final=[x / len(feats) for x in final]
-
-    indexes = uA.get_nns_by_vector(final,
-                              int(request.args.get('count')),
-                              include_distances=True)
+    indices=[]
+    for y in range(0,30):
+        indices.append(d[sorted_list[y]])
     
     j=""
-    for a in indexes[0]:
+    for a in indices:
         p=a//20
         o=a%20
         j+=("https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2005-08-29/250m/4/"+str(p)+"/"+str(o)+".jpg###")
