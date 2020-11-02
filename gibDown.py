@@ -25,20 +25,13 @@ from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Flatten, Dense, Dropout, GlobalAveragePooling2D
 
-def extract_features(url,name):
-        response = requests.get(url)
-        print(url)
-        img = Image.open(BytesIO(response.content))
-        a=np.asarray(img)
-        a=np.resize(a,(512,512,3))
-        cv2.imwrite(name+".jpg",a)
+
 
 counter=0
 for i in range(0,160):
         for j in range(0,320):
            
-            if(counter==199):
-                    break
+            
                     
             with open("C://Users//abhig//level8images//"+str(counter)+'.jpg', 'wb') as handle:
                     response = requests.get("https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2005-08-29/250m/8/"+str(i)+"/"+str(j)+".jpg",stream=True)
