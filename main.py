@@ -132,7 +132,7 @@ def hello():
     return 'Hello World!'
 
 @app.route("/resnet/")
-def thing():
+def resnet():
     a=request.args.get('url')+"?REQUEST="+request.args.get('REQUEST')+"&TIME="+request.args.get('TIME')+"&BBOX="+request.args.get('BBOX')+"&CRS="+request.args.get('CRS')+"&LAYERS="+request.args.get("LAYERS")+"&WRAP="+request.args.get("WRAP")+"&FORMAT="+request.args.get('FORMAT')+"&WIDTH="+request.args.get('WIDTH')+"&HEIGHT="+request.args.get('HEIGHT')+"&ts="+request.args.get('ts')
     
     bbox=request.args.get('BBOX')
@@ -150,7 +150,7 @@ def thing():
     return j
     
 @app.route("/multi/")
-def other():
+def multi():
     """
     uA=AnnoyIndex(128)
     uA.load('fullDatabaseSmallNew.ann')
@@ -202,7 +202,7 @@ def other():
 
 
 @app.route("/multiBig/")
-def otherOne():
+def multiBig():
     feature_list = pickle.load(open('features-worldview-custom-model-level-4.pickle','rb'))
     filename_list = pickle.load(open('filenames-worldview-level-4.pickle','rb'))
     neighbors = NearestNeighbors(n_neighbors=30,
@@ -244,24 +244,7 @@ def otherOne():
     return j
 
 
-@app.route("/simclr/")
-def thingR():
-    a=request.args.get('url')+"?REQUEST="+request.args.get('REQUEST')+"&TIME="+request.args.get('TIME')+"&BBOX="+request.args.get('BBOX')+"&CRS="+request.args.get('CRS')+"&LAYERS="+request.args.get("LAYERS")+"&WRAP="+request.args.get("WRAP")+"&FORMAT="+request.args.get('FORMAT')+"&WIDTH="+request.args.get('WIDTH')+"&HEIGHT="+request.args.get('HEIGHT')+"&ts="+request.args.get('ts')
 
-    
-    
-    u=AnnoyIndex(128)
-    u.load('imageFeatSuhas.ann')
-    indexes = u.get_nns_by_vector(eF(a,model2),
-                              30,
-                              include_distances=True)
-    j=""
-    for a in indexes[0]:
-        p=a//320
-        o=a%320
-        j+=("https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2012-07-09/250m/8/"+str(p+100)+"/"+str(o)+".jpg###")
-    return j
-    
     
 
 if __name__ == '__main__':
