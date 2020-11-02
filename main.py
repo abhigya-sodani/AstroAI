@@ -40,14 +40,6 @@ def extract_model_till_layer(model, layerNo):
   model = Model(inputs=model.inputs, outputs=outputs)
   return model
 
-
-class SimpleConverter(BaseConverter):
-
-    def to_python(self, value):
-        value=value.replace("?","*")
-        return value.replace
-
-
     
 model1 = ResNet50(weights='imagenet',
                          include_top=False,
@@ -162,15 +154,15 @@ def multi():
                              metric='euclidean').fit(feature_list)
     
 
-    a=request.args.get('url')
-    urlL=a.split("|||")
-    urlLL=[]
-    for i in urlL:
-        urlLL.append(i.split("***"))
+    url=request.args.get('url')
+    urlSplit=url.split("|||")
+    urlParts=[]
+    for i in urlSplit:
+        urlParts.append(i.split("***"))
 
     feats=[]
 
-    for u in urlLL:
+    for u in urlParts:
         a=int(u[0])
         b=int(u[1])
         feats.append(feature_list[filename_list.index("/dataset/level8images/level8images/"+str((a)*320+b)+".jpg")])
@@ -208,15 +200,15 @@ def multiBig():
     neighbors = NearestNeighbors(n_neighbors=30,
                              algorithm='brute',
                              metric='euclidean').fit(feature_list)
-    a=request.args.get('url')
-    urlL=a.split("|||")
-    urlLL=[]
-    for i in urlL:
-        urlLL.append(i.split("***"))
+    url=request.args.get('url')
+    urlSplit=url.split("|||")
+    urlParts=[]
+    for i in urlSplit:
+        urlParts.append(i.split("***"))
 
     feats=[]
 
-    for u in urlLL:
+    for u in urlParts:
         a=int(u[0])
         b=int(u[1])
         feats.append(feature_list[filename_list.index(str((a)*20+b)+".jpg")])
