@@ -24,20 +24,27 @@ from tensorflow.keras.applications.inception_v3 import InceptionV3
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Flatten, Dense, Dropout, GlobalAveragePooling2D
 import wget
- def extract_features(url, model):
-        
-       
-        response = wget.download(url)
-        a = cv2.imread(response)
-        os.remove(response)
-        a=np.resize(a,(1,224,224,3))
-        a=a/255       
-        #preprocessed_img = preprocess_input(a)
-        features = model.predict(a)
-        flattened_features = features.flatten()
-        normalized_features = flattened_features / norm(flattened_features)
-        return normalized_features
+def extract_features(url, model):
 
+
+  response = wget.download(url)
+  a = cv2.imread(response)
+  os.remove(response)
+  a=np.resize(a,(1,224,224,3))
+  a=a/255       
+  #preprocessed_img = preprocess_input(a)
+  features = model.predict(a)
+  flattened_features = features.flatten()
+  normalized_features = flattened_features / norm(flattened_features)
+  return normalized_features
+
+
+def extract_model_till_layer(model, layerNo):
+  outputs = model.layers[layerNo].output
+  model = Model(inputs=model.inputs, outputs=outputs)
+  return model
+ 
+ 
 model2 = ResNet50(weights='imagenet',
                          include_top=False,
                          input_shape=(512, 512, 3),
@@ -45,10 +52,7 @@ model2 = ResNet50(weights='imagenet',
 model = tf.keras.models.load_model('best_worldview_2.h5')
 model.summary()
 
-def extract_model_till_layer(model, layerNo):
-  outputs = model.layers[layerNo].output
-  model = Model(inputs=model.inputs, outputs=outputs)
-  return model
+
 model1=extract_model_till_layer(model,10)
                       
 features=[]
@@ -56,14 +60,13 @@ try:
 
     for i in range(0,160):
         for j in range(0,320):
-            a=extract_features("https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2005-08-29/250m/8/"+str(i)+"/"+str(j)+".jpg", model1)
-            print("length",len(a))
-            features.append(a)
+            feat=extract_features("https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2005-08-29/250m/8/"+str(i)+"/"+str(j)+".jpg", model1)
+            print("length",len(feat))
+            features.append(feat)
             print(str(i)+" "+str(j))
             
         time.sleep(30)
-    print(len(features[0]))
-    print(features[0])
+    
 
 
      # Length of item vector that will be indexed
@@ -72,16 +75,16 @@ try:
         feature = features[p]
         t.add_item(p, feature)
 
-    t.build(40)  # 50 trees
+    t.build(40)  # 40 trees
     t.save('hurricanes1.ann')
 
 except:
-    print("aaaa")
+    print("Error Occurred, indexing")
     t=AnnoyIndex(features[0])
     for p in range(len(features)):
         feature = features[p]
         t.add_item(p, feature)
 
-    t.build(40)  # 50 trees
+    t.build(40)  # 40 trees
     t.save('hurricanes1.ann')
 
