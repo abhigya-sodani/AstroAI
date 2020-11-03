@@ -131,8 +131,7 @@ function js_array($array)
 
         a=a.split("snapshot?");
 
-        //http://34.121.31.197:5000/resnet/?url="+a[0]+"snapshot&"+a[1], {mode: 'cors'}
-        //var src = fetch("http://34.121.31.197:5000/resnet/?url="+a[0]+"snapshot&"+a[1], {mode: 'cors'});
+        
         var code="";
         function makeHttpObject() {
             try {return new XMLHttpRequest();}
@@ -146,14 +145,14 @@ function js_array($array)
         }
 
         var request = makeHttpObject();
-        request.open("GET", "http://34.121.31.197:5000/resnet/?url="+a[0]+"snapshot&"+a[1]+"&count=30", true);
+        request.open("GET", "http://34.121.31.197:5000/resnet/?url="+a[0]+"snapshot&"+a[1]+"&count=30", true); //get urls from API
         request.send(null);
         request.onreadystatechange = function() {
         if (request.readyState == 4){
 
             code=String(request.responseText);
             //console.log(code);
-             code=code.split("###");
+             code=code.split("###"); //split the result
              console.log(code);
 
              nums=[];
@@ -165,11 +164,11 @@ function js_array($array)
                  f=p.split("/");
                  if(f[7]=="4"){
                      
-                    document.getElementById("-2").checked = true;
+                    document.getElementById("-2").checked = true; //if the image returned is of the zoomed out type, check this so on the repeat search, the engine knows which endpoint to access.
                  }
                  a=f[8];
                  b=f[9].split(".")[0];
-                 nums.push(a+"***"+b);
+                 nums.push(a+"***"+b); //GIBS index of the returned image 
                  console.log(nums);
                 }
 
@@ -179,7 +178,7 @@ function js_array($array)
              var stuff="";
              var counter=0;
              for(aY=0;aY<=29;aY++){
-                
+                     //set tiles to the GIBS image urls
                     stuff+="<li><input type='checkbox' name='"+String(counter)+"' value='"+nums[aY]+"'><img height='200px' width='200px' src='"+code[aY]+"'></img></li>";
 
                     counter+=1;
@@ -188,9 +187,9 @@ function js_array($array)
                 
              }
              var ide="row"+String(aY);
-                console.log(ide);
-                document.getElementById("append").innerHTML=stuff;
-                stuff="";
+                console.log(ide);//sanity check to see how mnay images retrieved
+                document.getElementById("append").innerHTML=stuff; //set the html string to the tiles interface div
+                stuff="";//reset stuff
                 
             }
             
@@ -198,13 +197,13 @@ function js_array($array)
             
 
         };
-        document.getElementById("-1").checked = true;
+        document.getElementById("-1").checked = true; //checking this invisible checkbox indicates to the webpage that the first search pass has been completed 
         
     }
     else{
-        var t=<?php echo js_array($arr)?>;
+        var t=<?php echo js_array($arr)?>; //unpakcage the indexes from the previous instance of this page.
 
-        console.log(t);
+        console.log(t); //sanity check
         final=""
         for(p=0;p<t.length;p++){
             if(p==0){
